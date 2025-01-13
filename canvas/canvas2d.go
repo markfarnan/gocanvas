@@ -112,6 +112,27 @@ func (c *Canvas2d) Set(canvas js.Value, width int, height int) {
 	c.gctx.FontCache = fontCache
 }
 
+// Simple resize method
+// No investigate done at to GC / memory leaks
+func (c *Canvas2d) Resize(width int, height int) {
+	// Resize the actual canvas	
+	c.canvas.Set("height", height)
+	c.canvas.Set("width", width)
+
+	// Update the dimensions
+	c.height = height
+	c.width = width
+
+	// Change shadow canvas
+	c.imgData = c.ctx.Call("createImageData", width, height) // Note Width, then Height
+	c.image = image.NewRGBA(image.Rect(0, 0, width, height))
+	c.copybuff = js.Global().Get("Uint8Array").New(len(c.image.Pix)) // Static JS buffer for copying data out to JS. Defined once and re-used to save on un-needed allocations
+
+	fontCache := c.gctx.FontCache
+	c.gctx = draw2dimg.NewGraphicContext(c.image)
+	c.gctx.FontCache = fontCache
+}
+
 // Starts the annimationFrame callbacks running.   (Recently seperated from Create / Set to give better control for when things start / stop)
 func (c *Canvas2d) Start(maxFPS float64, rf RenderFunc) {
 	c.SetFPS(maxFPS)
